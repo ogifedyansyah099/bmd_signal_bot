@@ -53,7 +53,9 @@ function formatMessage(data) {
     const dir      = data.direction || "?";
     const level    = data.level     || "?";
     const stars    = data.stars     || "";
-    const entry    = data.entry     || "?";
+    const entry1   = data.entry1    || data.entry || "?";
+    const entry2   = data.entry2    || "?";
+    const entry3   = data.entry3    || "?";
     const sl       = data.sl        || "?";
     const tp1      = data.tp1       || "?";
     const tp2      = data.tp2       || "?";
@@ -66,7 +68,6 @@ function formatMessage(data) {
     const emoji    = dir === "LONG" ? "📈🟢" : "📉🔴";
     const divider  = "━━━━━━━━━━━━━━━━━━━━";
 
-    // Cek kondisi yang terpenuhi
     const cond_rame  = data.cond_rame  === "1" ? "✅" : "❌";
     const cond_sar   = data.cond_sar   === "1" ? "✅" : "❌";
     const cond_htf   = data.cond_htf   === "1" ? "✅" : "❌";
@@ -74,7 +75,12 @@ function formatMessage(data) {
     const cond_kuat  = data.cond_kuat  === "1" ? "✅" : "❌";
     const rsi_val    = data.rsi_val    || "";
 
-    const msg = 
+    // Label entry sesuai arah
+    const e1label = dir === "LONG" ? "atas zona " : "bawah zona";
+    const e2label = "tengah zona";
+    const e3label = dir === "LONG" ? "bawah zona" : "atas zona ";
+
+    const msg =
 `${emoji} <b>TRIPLE CONFLUENCE ${dir}</b>
 ${divider}
 <b>Symbol :</b> ${symbol} | ${tf}
@@ -86,13 +92,16 @@ ${cond_htf}  HTF Searah
 ${cond_rsi}  RSI Aman${rsi_val ? " (" + rsi_val + ")" : ""}
 ${cond_kuat} Zona KUAT
 ${divider}
-<b>Entry  :</b> <code>${entry}</code>
-<b>SL     :</b> <code>${sl}</code>  ⛔
-<b>TP1    :</b> <code>${tp1}</code>  🎯
-<b>TP2    :</b> <code>${tp2}</code>  🏆
+<b>Entry 1 :</b> <code>${entry1}</code>  (${e1label})
+<b>Entry 2 :</b> <code>${entry2}</code>  (${e2label})
+<b>Entry 3 :</b> <code>${entry3}</code>  (${e3label})
 ${divider}
-<b>LOT    :</b> ${lot}
-<b>AKSI   :</b> <b>${aksi}</b>
+<b>SL      :</b> <code>${sl}</code>  ⛔
+<b>TP1     :</b> <code>${tp1}</code>  🎯
+<b>TP2     :</b> <code>${tp2}</code>  🏆
+${divider}
+<b>LOT     :</b> ${lot}
+<b>AKSI    :</b> <b>${aksi}</b>
 ${divider}
 <i>${time} WIB</i>`;
 
