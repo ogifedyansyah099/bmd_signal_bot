@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python311"]
+nixPkgs = ["nodejs_18"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["npm install"]
 
 [start]
-cmd = "python bmd_signal_bot.py"
+cmd = "node bmd_bot.js"
