@@ -16,9 +16,9 @@ app.use(express.json());
 // ─────────────────────────────────────────
 // CONFIG — isi dengan data kamu
 // ─────────────────────────────────────────
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "ISI_TOKEN_BOT_KAMU";
-const CHAT_ID        = process.env.CHAT_ID        || "ISI_CHAT_ID_KAMU";
-const SECRET_KEY     = process.env.SECRET_KEY     || "bmd_secret_2024";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8771269046:AAEyeOQob2mn7r7WfIg8lsqzt1vQ-iC_5G8";
+const CHAT_ID        = process.env.CHAT_ID        || "-1003823245991";
+const SECRET_KEY     = process.env.SECRET_KEY     || "ogifedyansyah_signal_2024";
 // SECRET_KEY = password supaya hanya TradingView yang bisa kirim
 
 // ─────────────────────────────────────────
