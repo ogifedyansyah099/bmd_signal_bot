@@ -5,6 +5,7 @@
 // ============================================================
 // CHANGELOG v3.2 (update dari v3.1 — sejalan Pine v8.1):
 //   ✅ FIX: formatLondonStatus emoji mapping (market + htf_dir)
+//   ✅ FIX: /test-london mock sinkron plain string (NORMAL/Bullish)
 //   ✅ SYNC: Version bump mengikuti Pine v8.1
 // CHANGELOG v3.1 (update dari v3.0 — sejalan Pine v8.0 HPM):
 //   ✅ NEW: OB Tier display (🔥FRESH / ⚡MITIGATED / 💀WEAK)
@@ -374,7 +375,7 @@ app.get("/test-early", async (_req, res) => {
 });
 
 app.get("/test-london", async (_req, res) => {
-    const mock = { key: SECRET_KEY, type:"LONDON_STATUS", hpm:"1", market:"🔄 NORMAL", htf_dir:"📈 Bullish", ob_ada:"1" };
+    const mock = { key: SECRET_KEY, type:"LONDON_STATUS", hpm:"1", market:"NORMAL", htf_dir:"Bullish", ob_ada:"1" };
     await sendTelegram(formatLondonStatus(mock));
     res.json({ ok: true, message: "Test London status sent!" });
 });
