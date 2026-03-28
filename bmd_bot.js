@@ -1,8 +1,11 @@
 // ============================================================
-// BMD SIGNAL BOT — Telegram Notifier v3.1
+// BMD SIGNAL BOT — Telegram Notifier v3.2
 // By: Black Market Digital Solutions
 // Node.js — deploy ke Railway / Render
 // ============================================================
+// CHANGELOG v3.2 (update dari v3.1 — sejalan Pine v8.1):
+//   ✅ FIX: formatLondonStatus emoji mapping (market + htf_dir)
+//   ✅ SYNC: Version bump mengikuti Pine v8.1
 // CHANGELOG v3.1 (update dari v3.0 — sejalan Pine v8.0 HPM):
 //   ✅ NEW: OB Tier display (🔥FRESH / ⚡MITIGATED / 💀WEAK)
 //   ✅ NEW: OB Touch count di pesan
@@ -224,12 +227,21 @@ function formatZoneInvalid(data) {
 function formatLondonStatus(data) {
     const div  = "━━━━━━━━━━━━━━━━━━━━";
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+
+    // Map market string → emoji label
+    const marketMap = { "RAME": "✅ RAME", "SEPI": "💤 SEPI", "NORMAL": "🔄 NORMAL" };
+    const marketLabel = marketMap[data.market] || data.market || "🔄 NORMAL";
+
+    // Map htf_dir string → emoji label
+    const htfMap = { "Bullish": "📈 Bullish", "Bearish": "📉 Bearish" };
+    const htfLabel = htfMap[data.htf_dir] || data.htf_dir || "?";
+
     return (
         `📊 <b>STATUS SIGNAL HARI INI</b>\n` +
         `${div}\n` +
         `<b>Mode    :</b> ${data.hpm === "1" ? "🔥 High Probability" : "⚡ Normal"}\n` +
-        `<b>Market  :</b> ${data.market  || "NORMAL"}\n` +
-        `<b>HTF     :</b> ${data.htf_dir || "?"}\n` +
+        `<b>Market  :</b> ${marketLabel}\n` +
+        `<b>HTF     :</b> ${htfLabel}\n` +
         `<b>OB Zone :</b> ${data.ob_ada === "1" ? "✅ Ada" : "❌ Belum ada"}\n` +
         `<b>Session :</b> London Open 🇬🇧\n` +
         `${div}\n` +
@@ -306,8 +318,8 @@ app.post("/webhook", async (req, res) => {
 app.get("/", (_req, res) => {
     res.json({
         status   : "BMD Signal Bot is running",
-        version  : "3.1",
-        pine     : "v8.0 HPM compatible",
+        version  : "3.2",
+        pine     : "v8.1 HPM compatible",
         features : ["EARLY", "CONFIRM", "HPM", "OB_TIER", "LONDON_STATUS", "ZONE_INVALID", "TP_SL_HIT"],
         time     : new Date().toISOString()
     });
@@ -319,9 +331,9 @@ app.get("/", (_req, res) => {
 app.get("/test", async (_req, res) => {
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     await sendTelegram(
-        `🧪 <b>TEST BMD SIGNAL BOT v3.1</b>\n` +
+        `🧪 <b>TEST BMD SIGNAL BOT v3.2</b>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `Pine Script : v8.0 HPM Edition\n` +
+        `Pine Script : v8.1 HPM Edition\n` +
         `Score       : 1–10 | EARLY + CONFIRM\n` +
         `OB Tier     : 🔥FRESH / ⚡MITIGATED / 💀WEAK\n` +
         `HPM Mode    : 🔥 High Probability Toggle\n` +
@@ -329,7 +341,7 @@ app.get("/test", async (_req, res) => {
         `Alerts      : Signal + London + Zone Invalid\n` +
         `Waktu       : ${time} WIB`
     );
-    res.json({ ok: true, message: "Test sent!", version: "3.1" });
+    res.json({ ok: true, message: "Test sent!", version: "3.2" });
 });
 
 app.get("/test-signal", async (_req, res) => {
@@ -378,7 +390,7 @@ app.get("/test-invalid", async (_req, res) => {
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`BMD Signal Bot v3.1 running on port ${PORT}`);
-    console.log(`Pine: v8.0 HPM compatible`);
+    console.log(`BMD Signal Bot v3.2 running on port ${PORT}`);
+    console.log(`Pine: v8.1 HPM compatible`);
     console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
 });
