@@ -1,14 +1,21 @@
 // ============================================================
-// BMD SIGNAL BOT — Telegram Notifier v2.2
+// BMD SIGNAL BOT — Telegram Notifier v3.0
 // By: Black Market Digital Solutions
 // Node.js — deploy ke Railway / Render
 // ============================================================
-// CHANGELOG v2.2:
-//   ✅ Support 8 kondisi checklist (+ cond_liq, cond_fvg, cond_msb)
-//   ✅ Level tampil sebagai X/8 (bukan X/5)
-//   ✅ Field "close" ditampilkan di pesan
-//   ✅ SECRET_KEY default sejalan dengan Pine Script
-//   ✅ Token & CHAT_ID tetap dari env variable (lebih aman)
+// CHANGELOG v3.0 (update dari v2.2 — sejalan Pine v8.0):
+//   ✅ FIX: 'dir'  (bukan 'direction')
+//   ✅ FIX: 'sym'  (bukan 'symbol')
+//   ✅ FIX: 'tf'   (bukan 'timeframe')
+//   ✅ FIX: 'score' (bukan 'level'), score_max = 10 (bukan 8)
+//   ✅ FIX: 'entry' single field (bukan entry1/entry2/entry3)
+//   ✅ FIX: 'rame/sar/rsi/kuat/liq/fvg/msb' (bukan cond_xxx)
+//   ✅ NEW: Tampilkan TP3 di pesan Telegram
+//   ✅ NEW: Tampilkan HTF warning ⚠️ di pesan
+//   ✅ NEW: Tampilkan session status di pesan
+//   ✅ NEW: Level validasi 1–10 (bukan 3–8)
+//   ✅ NEW: EARLY signal tampilkan HTF warn + session warn
+//   ✅ KEEP: Health check, test endpoint, TP/SL hit handler
 // ============================================================
 
 const express = require("express");
@@ -17,12 +24,10 @@ app.use(express.json());
 
 // ─────────────────────────────────────────
 // CONFIG — semua dari environment variable
-// Fallback hardcoded HANYA untuk development lokal
 // ─────────────────────────────────────────
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN  || "8771269046:AAEyeOQob2mn7r7WfIg8lsqzt1vQ-iC_5G8";
-const CHAT_ID        = process.env.CHAT_ID         || "-1003823245991";
-// ⚠️  Railway variable namanya WEBHOOK_SECRET — harus sama persis
-const SECRET_KEY     = process.env.WEBHOOK_SECRET  || "ogifedyansyah_signal_2024";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8771269046:AAEyeOQob2mn7r7WfIg8lsqzt1vQ-iC_5G8";
+const CHAT_ID        = process.env.CHAT_ID        || "-1003823245991";
+const SECRET_KEY     = process.env.WEBHOOK_SECRET || "ogifedyansyah_signal_2024";
 
 // ─────────────────────────────────────────
 // KIRIM PESAN KE TELEGRAM
@@ -45,92 +50,97 @@ async function sendTelegram(message) {
 }
 
 // ─────────────────────────────────────────
-// FORMAT SINYAL UTAMA
-// Mendukung 8 kondisi checklist (sejalan Pine v7.1)
+// FORMAT SINYAL UTAMA — Pine v8.0 fields
 // ─────────────────────────────────────────
 function formatMessage(data) {
-    const isEarly  = data.type === "EARLY";
-    const dir      = data.direction || "?";
-    const level    = parseInt(data.level) || 0;
-    const levelMax = data.level_max || "8";
-    const stars    = data.stars     || "";
-    const entry1   = data.entry1    || data.entry || "?";
-    const entry2   = data.entry2    || "?";
-    const entry3   = data.entry3    || "?";
-    const sl       = data.sl        || "?";
-    const tp1      = data.tp1       || "?";
-    const tp2      = data.tp2       || "?";
-    const lot      = data.lot       || "?";
-    const aksi     = data.aksi      || "?";
-    const symbol   = data.symbol    || "XAUUSD";
-    const tf       = data.timeframe || "M5";
-    const rsi_val  = data.rsi_val   || "";
-    const closeVal = data.close     || "?";
-    const time     = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+    const isEarly   = data.type === "EARLY";
 
-    const emoji = dir === "LONG" ? "📈🟢" : "📉🔴";
+    // ── Field v8.0 (nama baru) ──
+    const dir       = data.dir        || "?";
+    const sym       = data.sym        || "XAUUSD";
+    const tf        = data.tf         || "M5";
+    const score     = parseInt(data.score) || 0;
+    const scoreMax  = data.score_max  || "10";
+    const stars     = data.stars      || "";
+    const closeVal  = data.close      || "?";
+    const entry     = data.entry      || "?";
+    const sl        = data.sl         || "?";
+    const tp1       = data.tp1        || "?";
+    const tp2       = data.tp2        || "?";
+    const tp3       = data.tp3        || "?";
+    const lot       = data.lot        || "?";
+    const aksi      = data.aksi       || "?";
+    const htf_warn  = data.htf_warn   === "1";
+    const session   = data.session    === "1";
+    const htf_ok    = data.htf_ok     === "1";
+
+    // ── Kondisi checklist (nama baru tanpa cond_) ──
+    const c_rame = data.rame === "1" ? "✅" : "❌";
+    const c_sar  = data.sar  === "1" ? "✅" : "❌";
+    const c_rsi  = data.rsi  === "1" ? "✅" : "❌";
+    const c_kuat = data.kuat === "1" ? "✅" : "❌";
+    const c_liq  = data.liq  === "1" ? "✅" : "❌";
+    const c_fvg  = data.fvg  === "1" ? "✅" : "❌";
+    const c_msb  = data.msb  === "1" ? "✅" : "❌";
+
+    const time  = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     const div   = "━━━━━━━━━━━━━━━━━━━━";
+    const emoji = dir === "LONG" ? "📈🟢" : "📉🔴";
 
-    // Cek tiap entry — masih valid atau sudah lewat
-    const closePrice = parseFloat(data.close) || 0;
-    const checkEntry = (price) => {
-        if (!closePrice || !price || price === "?") return "";
-        const p = parseFloat(price);
-        if (dir === "LONG")  return closePrice <= p ? " ✅" : " ⚠️ lewat";
-        if (dir === "SHORT") return closePrice >= p ? " ✅" : " ⚠️ lewat";
-        return "";
-    };
+    // ── Warning lines ──
+    const htfWarnLine   = htf_warn ? `⚠️ <b>HTF BERLAWANAN</b> — risiko lebih tinggi!\n` : "";
+    const sessWarnLine  = !session  ? `⚠️ <b>LUAR SESSION</b> — berhati-hati!\n`          : "";
+    const warnBlock     = (htfWarnLine || sessWarnLine)
+        ? `${htfWarnLine}${sessWarnLine}${div}\n` : "";
 
-    const e1label = dir === "LONG" ? "atas zona " : "bawah zona";
-    const e2label = "tengah zona";
-    const e3label = dir === "LONG" ? "bawah zona" : "atas zona ";
-
+    // ── Header ──
     const header = isEarly
-        ? `⚡ <b>EARLY SIGNAL ${dir}</b> — <i>candle belum close</i>`
-        : `${emoji} <b>CONFIRMED SIGNAL ${dir}</b>`;
+        ? `⚡ <b>EARLY SIGNAL ${dir} [${tf}]</b> — <i>real-time</i>`
+        : `${emoji} <b>CONFIRMED SIGNAL ${dir} [${tf}]</b>`;
 
-    // Checklist 8 kondisi — hanya tampil di CONFIRMED
-    const cond_rame = data.cond_rame === "1" ? "✅" : "❌";
-    const cond_sar  = data.cond_sar  === "1" ? "✅" : "❌";
-    const cond_htf  = data.cond_htf  === "1" ? "✅" : "❌";
-    const cond_rsi  = data.cond_rsi  === "1" ? "✅" : "❌";
-    const cond_kuat = data.cond_kuat === "1" ? "✅" : "❌";
-    const cond_liq  = data.cond_liq  === "1" ? "✅" : "❌";
-    const cond_fvg  = data.cond_fvg  === "1" ? "✅" : "❌";
-    const cond_msb  = data.cond_msb  === "1" ? "✅" : "❌";
-
+    // ── Checklist (hanya CONFIRM) ──
     const sarLabel = dir === "LONG" ? "Bullish" : "Bearish";
-    const htfLabel = dir === "LONG" ? "Bullish" : "Bearish";
+    const htfLine  = htf_ok
+        ? `✅ HTF Searah (${sarLabel})\n`
+        : `❌ HTF ${htf_warn ? "⚠️ Berlawanan" : "Tidak Searah"}\n`;
 
     const condBlock = isEarly ? "" :
-        `${cond_rame} Pasar RAME\n` +
-        `${cond_sar}  SAR ${sarLabel}\n` +
-        `${cond_htf}  HTF Searah (${htfLabel})\n` +
-        `${cond_rsi}  RSI Aman${rsi_val ? " (" + rsi_val + ")" : ""}\n` +
-        `${cond_kuat} Zona KUAT\n` +
-        `${cond_liq}  Liquidity Sweep\n` +
-        `${cond_fvg}  Fair Value Gap\n` +
-        `${cond_msb}  MSB Konfirmasi\n` +
+        `${c_rame} Pasar RAME\n` +
+        `${c_sar}  SAR ${sarLabel}\n` +
+        htfLine +
+        `${c_rsi}  RSI Aman\n` +
+        `${c_kuat} Zona KUAT\n` +
+        `${c_liq}  Liquidity Sweep\n` +
+        `${c_fvg}  Fair Value Gap\n` +
+        `${c_msb}  MSB / BOS\n` +
+        `${session ? "✅" : "⚠️"} Session ${session ? "Aktif" : "Luar Jam"}\n` +
         `${div}\n`;
+
+    // ── TP3 line (hanya jika ada) ──
+    const tp3Line = tp3 && tp3 !== "?" ? `<b>TP3     :</b> <code>${tp3}</code>  🚀 (20% hold)\n` : "";
+
+    // ── Score color text ──
+    const scoreLabel = score >= 8 ? "🚀 MAX" : score >= 6 ? "🔥 KUAT" : score >= 4 ? "✅ BAGUS" : "⚠️ LEMAH";
 
     return (
         `${header}\n` +
         `${div}\n` +
-        `<b>Symbol :</b> ${symbol} | ${tf}\n` +
-        `<b>Level  :</b> ${level} / ${levelMax}  ${stars}\n` +
+        `${warnBlock}` +
+        `<b>Symbol :</b> ${sym} | ${tf}\n` +
+        `<b>Skor   :</b> ${score} / ${scoreMax}  ${scoreLabel}\n` +
+        `<b>Stars  :</b> ${stars}\n` +
         `<b>Close  :</b> <code>${closeVal}</code>\n` +
         `${div}\n` +
         `${condBlock}` +
-        `<b>Entry 1 :</b> <code>${entry1}</code>  (${e1label})${checkEntry(entry1)}\n` +
-        `<b>Entry 2 :</b> <code>${entry2}</code>  (${e2label})${checkEntry(entry2)}\n` +
-        `<b>Entry 3 :</b> <code>${entry3}</code>  (${e3label})${checkEntry(entry3)}\n` +
+        `<b>Entry  :</b> <code>${entry}</code>  🎯\n` +
         `${div}\n` +
-        `<b>SL      :</b> <code>${sl}</code>  ⛔\n` +
-        `<b>TP1     :</b> <code>${tp1}</code>  🎯\n` +
-        `<b>TP2     :</b> <code>${tp2}</code>  🏆\n` +
+        `<b>SL     :</b> <code>${sl}</code>  ⛔\n` +
+        `<b>TP1    :</b> <code>${tp1}</code>  🎯 (50% close + BE)\n` +
+        `<b>TP2    :</b> <code>${tp2}</code>  🏆 (30% close)\n` +
+        `${tp3Line}` +
         `${div}\n` +
-        `<b>LOT     :</b> ${lot}\n` +
-        `<b>AKSI    :</b> <b>${aksi}</b>\n` +
+        `<b>LOT    :</b> ${lot}\n` +
+        `<b>AKSI   :</b> <b>${aksi}</b>\n` +
         `${div}\n` +
         `<i>${time} WIB</i>`
     );
@@ -143,20 +153,24 @@ function formatTpSlMessage(data) {
     const div   = "━━━━━━━━━━━━━━━━━━━━";
     const time  = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     const emoji = data.type === "SL_HIT" ? "⛔" : "🎯";
-    const label = data.type === "TP1_HIT" ? "TP1 KENA"
+    const label = data.type === "TP1_HIT" ? "TP1 KENA — Geser SL ke BE! ✅"
                 : data.type === "TP2_HIT" ? "TP2 KENA 🏆"
-                : "STOP LOSS KENA";
+                : "STOP LOSS KENA ⛔";
+    const dir   = data.dir || data.direction || "?";
+    const sym   = data.sym || data.symbol    || "?";
+    const tf    = data.tf  || data.timeframe || "?";
     const hitLine = data.type === "SL_HIT"
         ? `<b>SL Hit  :</b> <code>${data.sl}</code>`
         : `<b>TP Hit  :</b> <code>${data.tp1 || data.tp2}</code>`;
 
     return (
-        `${emoji} <b>${label} — ${data.direction}</b>\n` +
+        `${emoji} <b>${label}</b>\n` +
         `${div}\n` +
-        `<b>Symbol :</b> ${data.symbol} | ${data.timeframe}\n` +
+        `<b>Symbol :</b> ${sym} | ${tf}\n` +
+        `<b>Arah   :</b> ${dir}\n` +
         `<b>Entry  :</b> <code>${data.entry}</code>\n` +
         `${hitLine}\n` +
-        `<b>Harga  :</b> <code>${data.price}</code>\n` +
+        `<b>Harga  :</b> <code>${data.price || "?"}</code>\n` +
         `${div}\n` +
         `<i>${time} WIB</i>`
     );
@@ -169,40 +183,40 @@ app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
 
-        // Log payload masuk (tanpa key untuk keamanan)
+        // Log payload masuk
         const { key: _k, ...safeLog } = data;
         console.log("Webhook received:", JSON.stringify(safeLog));
 
         // Validasi secret key
         if (data.key !== SECRET_KEY) {
-            console.warn("Invalid key attempt:", data.key);
+            console.warn("Invalid key:", data.key);
             return res.status(401).json({ error: "Unauthorized" });
         }
 
         // Handle TP / SL hit
         if (["TP1_HIT", "TP2_HIT", "SL_HIT"].includes(data.type)) {
             await sendTelegram(formatTpSlMessage(data));
-            console.log(`${data.type} sent: ${data.direction}`);
+            console.log(`${data.type} sent: ${data.dir || data.direction}`);
             return res.json({ ok: true, message: `${data.type} sent` });
         }
 
-        // Validasi field sinyal utama
-        if (!data.direction || !data.entry1) {
+        // Validasi field wajib (v8.0: 'dir' dan 'entry')
+        if (!data.dir || !data.entry) {
             console.warn("Missing fields:", data);
-            return res.status(400).json({ error: "Missing required fields: direction, entry1" });
+            return res.status(400).json({ error: "Missing required fields: dir, entry" });
         }
 
-        // Validasi level — hanya proses 3–8
-        const level = parseInt(data.level) || 0;
-        if (level < 3 || level > 8) {
-            console.log(`Level ${level} diabaikan (di luar 3–8)`);
-            return res.json({ ok: true, message: `Level ${level} ignored (below minimum)` });
+        // Validasi score — proses 3–10 untuk CONFIRM, 1+ untuk EARLY
+        const score = parseInt(data.score) || 0;
+        if (data.type === "CONFIRM" && score < 3) {
+            console.log(`Score ${score} diabaikan (CONFIRM butuh min 3)`);
+            return res.json({ ok: true, message: `Score ${score} ignored` });
         }
 
         // Kirim sinyal ke Telegram
         await sendTelegram(formatMessage(data));
-        console.log(`[SIGNAL] ${data.direction} Level ${level}/8 — ${data.symbol} ${data.timeframe}`);
-        res.json({ ok: true, message: "Signal sent to Telegram", level });
+        console.log(`[${data.type}] ${data.dir} Score ${score}/10 — ${data.sym} ${data.tf}`);
+        res.json({ ok: true, message: "Signal sent!", type: data.type, score, dir: data.dir });
 
     } catch (err) {
         console.error("Webhook error:", err);
@@ -216,56 +230,90 @@ app.post("/webhook", async (req, res) => {
 app.get("/", (_req, res) => {
     res.json({
         status  : "BMD Signal Bot is running",
-        version : "2.2",
+        version : "3.0",
+        pine    : "v8.0 compatible",
         time    : new Date().toISOString()
     });
 });
 
-// Test endpoint — kirim pesan dummy ke Telegram
+// ─────────────────────────────────────────
+// TEST ENDPOINT
+// ─────────────────────────────────────────
 app.get("/test", async (_req, res) => {
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     await sendTelegram(
-        `🧪 <b>TEST BMD SIGNAL BOT v2.2</b>\n` +
+        `🧪 <b>TEST BMD SIGNAL BOT v3.0</b>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `Bot aktif dan siap menerima sinyal!\n` +
-        `Support: Level 3–8 / 8 bintang\n` +
-        `Checklist: 8 kondisi (termasuk LIQ, FVG, MSB)\n` +
+        `Pine Script: v8.0 Smart Money Edition\n` +
+        `Support: Score 1–10 | EARLY + CONFIRM\n` +
+        `Checklist: 9 kondisi + HTF warn + Session\n` +
+        `TP: TP1 (50%) + TP2 (30%) + TP3 (20%)\n` +
         `Waktu: ${time} WIB`
     );
-    res.json({ ok: true, message: "Test message sent!" });
+    res.json({ ok: true, message: "Test message sent!", version: "3.0" });
 });
 
-// Test webhook payload — simulasi sinyal LONG level 5
+// ─────────────────────────────────────────
+// TEST SIGNAL — simulasi CONFIRM LONG score 7
+// ─────────────────────────────────────────
 app.get("/test-signal", async (_req, res) => {
     const mockPayload = {
         key       : SECRET_KEY,
-        direction : "LONG",
-        symbol    : "XAUUSD",
-        timeframe : "M5",
-        level     : "5",
-        level_max : "8",
-        stars     : "★★★★★☆☆☆",
+        type      : "CONFIRM",
+        dir       : "LONG",
+        sym       : "XAUUSD",
+        tf        : "M5",
+        score     : "7",
+        score_max : "10",
+        stars     : "★★★★★★★☆☆☆",
         close     : "2345.67",
-        entry1    : "2347.00",
-        entry2    : "2345.50",
-        entry3    : "2344.00",
-        sl        : "2341.00",
-        tp1       : "2351.00",
+        entry     : "2344.50",
+        sl        : "2340.00",
+        tp1       : "2351.25",
         tp2       : "2358.00",
+        tp3       : "2365.00",
         lot       : "0.10",
-        aksi      : "ENTRY PENUH",
-        rsi_val   : "55",
-        cond_rame : "1",
-        cond_sar  : "1",
-        cond_htf  : "1",
-        cond_rsi  : "1",
-        cond_kuat : "0",
-        cond_liq  : "1",
-        cond_fvg  : "0",
-        cond_msb  : "1"
+        htf_ok    : "1",
+        htf_warn  : "0",
+        session   : "1",
+        rame      : "1",
+        sar       : "1",
+        rsi       : "1",
+        kuat      : "1",
+        liq       : "1",
+        fvg       : "0",
+        msb       : "1",
+        aksi      : "🔥 ENTRY PENUH"
     };
     await sendTelegram(formatMessage(mockPayload));
-    res.json({ ok: true, message: "Test signal sent!", payload: mockPayload });
+    res.json({ ok: true, message: "Test CONFIRM LONG signal sent!", payload: mockPayload });
+});
+
+// Test EARLY signal
+app.get("/test-early", async (_req, res) => {
+    const mockPayload = {
+        key      : SECRET_KEY,
+        type     : "EARLY",
+        dir      : "SHORT",
+        sym      : "XAUUSD",
+        tf       : "M5",
+        score    : "3",
+        stars    : "★★★☆☆☆☆☆☆☆",
+        close    : "2345.67",
+        entry    : "2347.00",
+        sl       : "2351.00",
+        tp1      : "2341.50",
+        tp2      : "2336.00",
+        tp3      : "2330.00",
+        lot      : "0.01",
+        htf_ok   : "0",
+        htf_warn : "1",
+        session  : "0",
+        aksi     : "EARLY ENTRY"
+    };
+    await sendTelegram(formatMessage(mockPayload));
+    res.json({ ok: true, message: "Test EARLY SHORT signal sent!", payload: mockPayload });
 });
 
 // ─────────────────────────────────────────
@@ -273,6 +321,7 @@ app.get("/test-signal", async (_req, res) => {
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`BMD Signal Bot v2.2 running on port ${PORT}`);
-    console.log(`Secret key (WEBHOOK_SECRET): ${SECRET_KEY.substring(0, 6)}...`);
+    console.log(`BMD Signal Bot v3.0 running on port ${PORT}`);
+    console.log(`Pine Script: v8.0 compatible`);
+    console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
 });
