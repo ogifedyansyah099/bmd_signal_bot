@@ -63,6 +63,11 @@ function scoreLabel(score) {
 // ─────────────────────────────────────────
 // FORMAT SINYAL UTAMA
 // ─────────────────────────────────────────
+function fmtLot(val) {
+    if (!val || val === "?") return "?";
+    return parseFloat(val).toString();
+}
+
 function formatMessage(data) {
     const isEarly  = data.type === "EARLY";
     const dir      = data.dir       || "?";
@@ -77,7 +82,7 @@ function formatMessage(data) {
     const tp1      = data.tp1       || "?";
     const tp2      = data.tp2       || "?";
     const tp3      = data.tp3       || "?";
-    const lot      = data.lot       || "?";
+    const lot      = fmtLot(data.lot);
     const aksi     = data.aksi      || "?";
     const htf_warn = data.htf_warn  === "1";
     const session  = data.session   === "1";
@@ -111,24 +116,12 @@ function formatMessage(data) {
     // Header
     const header = isEarly
         ? `⚡ <b>EARLY SIGNAL ${dir} [${tf}]</b>${hpmBadge} — <i>real-time</i>`
-        : `${emoji} <b>CONFIRMED SIGNAL ${dir} [${tf}]</b>${hpmBadge}`;
+        : `💪 <b>KONFIRMASI SIGNAL ${dir} [${tf}]</b>${hpmBadge}`;
 
-    // Checklist (hanya CONFIRM)
-    const sarLabel = dir === "LONG" ? "Bullish" : "Bearish";
-    const htfLine  = htf_ok
-        ? `✅ HTF Searah (${sarLabel})\n`
-        : `❌ HTF ${htf_warn ? "⚠️ Berlawanan" : "Tidak Searah"}\n`;
-
+    // Confirm message block
     const condBlock = isEarly ? "" :
-        `${c_rame} Pasar RAME\n` +
-        `${c_sar}  SAR ${sarLabel}\n` +
-        htfLine +
-        `${c_rsi}  RSI Aman\n` +
-        `${c_kuat} Zona KUAT\n` +
-        `${c_liq}  Liquidity Sweep\n` +
-        `${c_fvg}  Fair Value Gap\n` +
-        `${c_msb}  MSB / BOS\n` +
-        `${session ? "✅" : "⚠️"} Session ${session ? "Aktif" : "Luar Jam"}\n` +
+        `Sudah entry di EARLY? → Pertahankan! 🔒\n` +
+        `Belum entry? → Bisa entry sekarang 🎯\n` +
         `${div}\n`;
 
     // OB Tier line
@@ -159,7 +152,7 @@ function formatMessage(data) {
         `${tp3Line}` +
         `${div}\n` +
         `<b>LOT    :</b> ${lot}\n` +
-        `<b>AKSI   :</b> <b>${aksi}</b>\n` +
+        (!isEarly ? `${div}\nHarga masih berjalan — semoga kena TP! 💰\n` : `<b>AKSI   :</b> <b>${aksi}</b>\n`) +
         `${div}\n` +
         `<i>${time} WIB</i>`
     );
