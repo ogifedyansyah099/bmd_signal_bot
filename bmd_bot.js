@@ -1,21 +1,17 @@
 // ============================================================
-// BMD SIGNAL BOT — Telegram Notifier v3.2
+// BMD SIGNAL BOT — Telegram Notifier v3.3
 // By: Black Market Digital Solutions
 // Node.js — deploy ke Railway / Render
 // ============================================================
+// CHANGELOG v3.3 (update dari v3.2 — sejalan Pine v8.2 Forex):
+//   ✅ NEW: Handler TP3_HIT — notif full exit ke Telegram
+//   ✅ FIX: hitLine sekarang handle TP1/TP2/TP3/SL masing-masing
+//   ✅ NEW: TP3 reminder "Semua posisi tertutup" di pesan
+//   ✅ SYNC: Version bump mengikuti Pine v8.2 Forex Edition
 // CHANGELOG v3.2 (update dari v3.1 — sejalan Pine v8.1):
 //   ✅ FIX: formatLondonStatus emoji mapping (market + htf_dir)
 //   ✅ FIX: /test-london mock sinkron plain string (NORMAL/Bullish)
 //   ✅ SYNC: Version bump mengikuti Pine v8.1
-// CHANGELOG v3.1 (update dari v3.0 — sejalan Pine v8.0 HPM):
-//   ✅ NEW: OB Tier display (🔥FRESH / ⚡MITIGATED / 💀WEAK)
-//   ✅ NEW: OB Touch count di pesan
-//   ✅ NEW: HPM badge di header signal
-//   ✅ NEW: Handle London Open daily status alert
-//   ✅ NEW: Handle Zone Invalid alert
-//   ✅ NEW: BE reminder otomatis saat TP1 kena
-//   ✅ NEW: OB WEAK diblokir saat HPM ON
-//   ✅ KEEP: Semua field v3.0 tetap berjalan
 // ============================================================
 
 const express = require("express");
@@ -179,15 +175,19 @@ function formatTpSlMessage(data) {
     const time  = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     const label = data.type === "TP1_HIT" ? "🎯 TP1 KENA"
                 : data.type === "TP2_HIT" ? "🏆 TP2 KENA"
+                : data.type === "TP3_HIT" ? "🚀 TP3 KENA — FULL EXIT"
                 : "⛔ STOP LOSS KENA";
     const dir  = data.dir || data.direction || "?";
     const sym  = data.sym || data.symbol    || "?";
     const tf   = data.tf  || data.timeframe || "?";
-    const hitLine = data.type === "SL_HIT"
-        ? `<b>SL Hit  :</b> <code>${data.sl}</code>`
-        : `<b>TP Hit  :</b> <code>${data.tp1 || data.tp2}</code>`;
+    const hitLine = data.type === "SL_HIT"  ? `<b>SL Hit  :</b> <code>${data.sl}</code>`
+                  : data.type === "TP1_HIT" ? `<b>TP Hit  :</b> <code>${data.tp1}</code>`
+                  : data.type === "TP2_HIT" ? `<b>TP Hit  :</b> <code>${data.tp2}</code>`
+                  : `<b>TP Hit  :</b> <code>${data.tp3}</code>`;
     const beReminder = data.type === "TP1_HIT"
         ? `${div}\n💡 <b>Segera geser SL ke harga Entry!</b>\n🔒 Posisi jadi Zero Risk\n` : "";
+    const tp3Reminder = data.type === "TP3_HIT"
+        ? `${div}\n🏁 <b>Semua posisi sudah tertutup!</b>\n💰 Booking profit penuh — tunggu setup berikutnya\n` : "";
 
     return (
         `${label}\n` +
@@ -198,6 +198,7 @@ function formatTpSlMessage(data) {
         `${hitLine}\n` +
         `<b>Harga  :</b> <code>${data.price || "?"}</code>\n` +
         `${beReminder}` +
+        `${tp3Reminder}` +
         `${div}\n` +
         `<i>${time} WIB</i>`
     );
@@ -280,7 +281,7 @@ app.post("/webhook", async (req, res) => {
         }
 
         // ── TP / SL Hit ──
-        if (["TP1_HIT", "TP2_HIT", "SL_HIT"].includes(data.type)) {
+        if (["TP1_HIT", "TP2_HIT", "TP3_HIT", "SL_HIT"].includes(data.type)) {
             await sendTelegram(formatTpSlMessage(data));
             return res.json({ ok: true, message: `${data.type} sent` });
         }
@@ -319,9 +320,9 @@ app.post("/webhook", async (req, res) => {
 app.get("/", (_req, res) => {
     res.json({
         status   : "BMD Signal Bot is running",
-        version  : "3.2",
-        pine     : "v8.1 HPM compatible",
-        features : ["EARLY", "CONFIRM", "HPM", "OB_TIER", "LONDON_STATUS", "ZONE_INVALID", "TP_SL_HIT"],
+        version  : "3.3",
+        pine     : "v8.2 Forex Edition compatible",
+        features : ["EARLY", "CONFIRM", "HPM", "OB_TIER", "LONDON_STATUS", "ZONE_INVALID", "TP1_HIT", "TP2_HIT", "TP3_HIT", "SL_HIT"],
         time     : new Date().toISOString()
     });
 });
@@ -332,17 +333,19 @@ app.get("/", (_req, res) => {
 app.get("/test", async (_req, res) => {
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     await sendTelegram(
-        `🧪 <b>TEST BMD SIGNAL BOT v3.2</b>\n` +
+        `🧪 <b>TEST BMD SIGNAL BOT v3.3</b>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `Pine Script : v8.1 HPM Edition\n` +
+        `Pine Script : v8.2 Forex Edition\n` +
         `Score       : 1–10 | EARLY + CONFIRM\n` +
         `OB Tier     : 🔥FRESH / ⚡MITIGATED / 💀WEAK\n` +
         `HPM Mode    : 🔥 High Probability Toggle\n` +
         `TP Split    : TP1(50%) + TP2(30%) + TP3(20%)\n` +
+        `TP3 Notif   : ✅ Aktif (Full Exit Alert)\n` +
+        `Multi-trade : ✅ Max 3 concurrent\n` +
         `Alerts      : Signal + London + Zone Invalid\n` +
         `Waktu       : ${time} WIB`
     );
-    res.json({ ok: true, message: "Test sent!", version: "3.2" });
+    res.json({ ok: true, message: "Test sent!", version: "3.3" });
 });
 
 app.get("/test-signal", async (_req, res) => {
@@ -386,12 +389,22 @@ app.get("/test-invalid", async (_req, res) => {
     res.json({ ok: true, message: "Test Zone Invalid sent!" });
 });
 
+app.get("/test-tp3", async (_req, res) => {
+    const mock = {
+        key: SECRET_KEY, type: "TP3_HIT", dir: "LONG",
+        sym: "XAUUSD", tf: "M5",
+        entry: "2344.50", tp3: "2365.00", price: "2365.20"
+    };
+    await sendTelegram(formatTpSlMessage(mock));
+    res.json({ ok: true, message: "Test TP3 HIT sent!" });
+});
+
 // ─────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`BMD Signal Bot v3.2 running on port ${PORT}`);
-    console.log(`Pine: v8.1 HPM compatible`);
+    console.log(`BMD Signal Bot v3.3 running on port ${PORT}`);
+    console.log(`Pine: v8.2 Forex Edition compatible`);
     console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
 });
