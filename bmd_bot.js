@@ -1,17 +1,15 @@
 // ============================================================
-// BMD SIGNAL BOT — Telegram Notifier v3.3
+// BMD SIGNAL BOT — Telegram Notifier v3.4
 // By: Black Market Digital Solutions
 // Node.js — deploy ke Railway / Render
 // ============================================================
+// CHANGELOG v3.4 (update dari v3.3 — sejalan Pine v8.2):
+//   ✅ FIX: Early Signal skor < 5 tidak dikirim ke Telegram
+//   ✅ REMOVE: ZONE_INVALID dihapus (cegah spam grup)
 // CHANGELOG v3.3 (update dari v3.2 — sejalan Pine v8.2 Forex):
 //   ✅ NEW: Handler TP3_HIT — notif full exit ke Telegram
 //   ✅ FIX: hitLine sekarang handle TP1/TP2/TP3/SL masing-masing
 //   ✅ NEW: TP3 reminder "Semua posisi tertutup" di pesan
-//   ✅ SYNC: Version bump mengikuti Pine v8.2 Forex Edition
-// CHANGELOG v3.2 (update dari v3.1 — sejalan Pine v8.1):
-//   ✅ FIX: formatLondonStatus emoji mapping (market + htf_dir)
-//   ✅ FIX: /test-london mock sinkron plain string (NORMAL/Bullish)
-//   ✅ SYNC: Version bump mengikuti Pine v8.1
 // ============================================================
 
 const express = require("express");
@@ -205,25 +203,6 @@ function formatTpSlMessage(data) {
 }
 
 // ─────────────────────────────────────────
-// FORMAT ZONE INVALID
-// ─────────────────────────────────────────
-function formatZoneInvalid(data) {
-    const div   = "━━━━━━━━━━━━━━━━━━━━";
-    const time  = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
-    const isBuy = data.zone_type === "BUYER";
-    return (
-        `🔴 <b>ZONA ${isBuy ? "BUYER" : "SELLER"} DITEMBUS!</b>\n` +
-        `${div}\n` +
-        `<b>Symbol :</b> ${data.sym || "?"} | ${data.tf || "?"}\n` +
-        `<b>Zona   :</b> ${isBuy ? "🟢 BUY ZONE" : "🔴 SELL ZONE"} tidak valid lagi\n` +
-        `<b>Harga  :</b> <code>${data.close || "?"}</code>\n` +
-        `${div}\n` +
-        `💡 Review posisi yang mengikuti zona ini!\n` +
-        `<i>${time} WIB</i>`
-    );
-}
-
-// ─────────────────────────────────────────
 // FORMAT LONDON OPEN STATUS
 // ─────────────────────────────────────────
 function formatLondonStatus(data) {
@@ -274,12 +253,6 @@ app.post("/webhook", async (req, res) => {
             return res.json({ ok: true, message: "London status sent" });
         }
 
-        // ── Zone Invalid ──
-        if (data.type === "ZONE_INVALID") {
-            await sendTelegram(formatZoneInvalid(data));
-            return res.json({ ok: true, message: "Zone invalid sent" });
-        }
-
         // ── TP / SL Hit ──
         if (["TP1_HIT", "TP2_HIT", "TP3_HIT", "SL_HIT"].includes(data.type)) {
             await sendTelegram(formatTpSlMessage(data));
@@ -293,8 +266,8 @@ app.post("/webhook", async (req, res) => {
 
         // ── Validasi score ──
         const score = parseInt(data.score) || 0;
-        if (data.type === "CONFIRM" && score < 3) {
-            return res.json({ ok: true, message: `Score ${score} ignored` });
+        if (data.type === "CONFIRM" && score < 5) {
+            return res.json({ ok: true, message: `Score ${score} ignored (min 5)` });
         }
 
         // ── Block OB WEAK saat HPM ON ──
@@ -320,9 +293,9 @@ app.post("/webhook", async (req, res) => {
 app.get("/", (_req, res) => {
     res.json({
         status   : "BMD Signal Bot is running",
-        version  : "3.3",
-        pine     : "v8.2 Forex Edition compatible",
-        features : ["EARLY", "CONFIRM", "HPM", "OB_TIER", "LONDON_STATUS", "ZONE_INVALID", "TP1_HIT", "TP2_HIT", "TP3_HIT", "SL_HIT"],
+        version  : "3.4",
+        pine     : "v8.2 compatible",
+        features : ["EARLY (skor≥5)", "CONFIRM (skor≥5)", "HPM", "OB_TIER", "LONDON_STATUS", "TP1_HIT", "TP2_HIT", "TP3_HIT", "SL_HIT"],
         time     : new Date().toISOString()
     });
 });
@@ -333,19 +306,19 @@ app.get("/", (_req, res) => {
 app.get("/test", async (_req, res) => {
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     await sendTelegram(
-        `🧪 <b>TEST BMD SIGNAL BOT v3.3</b>\n` +
+        `🧪 <b>TEST BMD SIGNAL BOT v3.4</b>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `Pine Script : v8.2 Forex Edition\n` +
-        `Score       : 1–10 | EARLY + CONFIRM\n` +
+        `Pine Script : v8.2 Edition\n` +
+        `Score       : Min 5/10 | EARLY + CONFIRM\n` +
         `OB Tier     : 🔥FRESH / ⚡MITIGATED / 💀WEAK\n` +
         `HPM Mode    : 🔥 High Probability Toggle\n` +
         `TP Split    : TP1(50%) + TP2(30%) + TP3(20%)\n` +
         `TP3 Notif   : ✅ Aktif (Full Exit Alert)\n` +
         `Multi-trade : ✅ Max 3 concurrent\n` +
-        `Alerts      : Signal + London + Zone Invalid\n` +
+        `Zone Invalid: ❌ Dinonaktifkan (anti spam)\n` +
         `Waktu       : ${time} WIB`
     );
-    res.json({ ok: true, message: "Test sent!", version: "3.3" });
+    res.json({ ok: true, message: "Test sent!", version: "3.4" });
 });
 
 app.get("/test-signal", async (_req, res) => {
@@ -383,12 +356,6 @@ app.get("/test-london", async (_req, res) => {
     res.json({ ok: true, message: "Test London status sent!" });
 });
 
-app.get("/test-invalid", async (_req, res) => {
-    const mock = { key: SECRET_KEY, type:"ZONE_INVALID", zone_type:"BUYER", sym:"XAUUSD", tf:"M5", close:"2338.50" };
-    await sendTelegram(formatZoneInvalid(mock));
-    res.json({ ok: true, message: "Test Zone Invalid sent!" });
-});
-
 app.get("/test-tp3", async (_req, res) => {
     const mock = {
         key: SECRET_KEY, type: "TP3_HIT", dir: "LONG",
@@ -404,7 +371,7 @@ app.get("/test-tp3", async (_req, res) => {
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`BMD Signal Bot v3.3 running on port ${PORT}`);
-    console.log(`Pine: v8.2 Forex Edition compatible`);
+    console.log(`BMD Signal Bot v3.4 running on port ${PORT}`);
+    console.log(`Pine: v8.2 compatible`);
     console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
 });
