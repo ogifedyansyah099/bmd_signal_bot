@@ -181,9 +181,6 @@ function formatTpSlMessage(data) {
     const hitLine = data.type === "SL_HIT"  ? `<b>SL Hit  :</b> <code>${data.sl}</code>`
                   : data.type === "TP1_HIT" ? `<b>TP Hit  :</b> <code>${data.tp1}</code>`
                   : `<b>TP Hit  :</b> <code>${data.tp2}</code>`;
-    const beReminder = data.type === "TP1_HIT"
-        ? `${div}\n💡 <b>Segera geser SL ke harga Entry!</b>\n🔒 Posisi jadi Zero Risk\n` : "";
-
     return (
         `${label}\n` +
         `${div}\n` +
@@ -192,7 +189,6 @@ function formatTpSlMessage(data) {
         `<b>Entry  :</b> <code>${data.entry}</code>\n` +
         `${hitLine}\n` +
         `<b>Harga  :</b> <code>${data.price || "?"}</code>\n` +
-        `${beReminder}` +
         `${div}\n` +
         `<i>${time} WIB</i>`
     );
