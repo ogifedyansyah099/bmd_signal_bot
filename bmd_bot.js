@@ -353,4 +353,4 @@ app.listen(PORT, () => {
     console.log(`BMD Signal Bot v3.6 running on port ${PORT}`);
     console.log(`Pine: v8.2 compatible`);
     console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
-});s
+});
