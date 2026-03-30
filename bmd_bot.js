@@ -8,13 +8,13 @@
 // CHANGELOG v3.5 (update dari v3.4):
 //   ✅ FIX: Format notif CONFIRM baru — tanpa checklist, pesan floating
 //   ✅ FIX: Lot format tanpa trailing zero (0.10 → 0.1)
-//   ✅ NEW: TP1/TP2/TP3 detection independen di Pine Script
+//   ✅ NEW: TP1/TP2 detection independen di Pine Script (TP3 dihapus)
 // CHANGELOG v3.4 (update dari v3.3):
 //   ✅ FIX: Early Signal skor < 5 tidak dikirim ke Telegram
 //   ✅ REMOVE: ZONE_INVALID dihapus (cegah spam grup)
 // CHANGELOG v3.3 (update dari v3.2 — sejalan Pine v8.2 Forex):
-//   ✅ FIX: hitLine sekarang handle TP1/TP2/TP3/SL masing-masing
-//   ✅ NEW: TP3 reminder "Semua posisi tertutup" di pesan
+//   ✅ FIX: hitLine sekarang handle TP1/TP2/SL masing-masing
+//   ✅ FIX: hitLine handle TP1/TP2/SL (TP3 tidak pernah diimplementasi — dihapus dari changelog)
 // ============================================================
 
 const express = require("express");
