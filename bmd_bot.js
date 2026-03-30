@@ -1,20 +1,22 @@
 // ============================================================
-// BMD SIGNAL BOT — Telegram Notifier v3.6
+// BMD SIGNAL BOT — Telegram Notifier v3.7
 // By: Black Market Digital Solutions
 // Node.js — deploy ke Railway / Render
 // ============================================================
+// CHANGELOG v3.7 (update dari v3.6):
+//   ✅ FIX: LONDON_STATUS spam — cooldown 5 menit (anti duplikat multi-chart)
 // CHANGELOG v3.6 (update dari v3.5 — sejalan Pine v8.2):
 //   ✅ REMOVE: TP3 dihapus — split jadi 50% TP1 + 50% TP2
 // CHANGELOG v3.5 (update dari v3.4):
 //   ✅ FIX: Format notif CONFIRM baru — tanpa checklist, pesan floating
 //   ✅ FIX: Lot format tanpa trailing zero (0.10 → 0.1)
-//   ✅ NEW: TP1/TP2 detection independen di Pine Script (TP3 dihapus)
+//   ✅ NEW: TP1/TP2/TP3 detection independen di Pine Script
 // CHANGELOG v3.4 (update dari v3.3):
 //   ✅ FIX: Early Signal skor < 5 tidak dikirim ke Telegram
 //   ✅ REMOVE: ZONE_INVALID dihapus (cegah spam grup)
 // CHANGELOG v3.3 (update dari v3.2 — sejalan Pine v8.2 Forex):
-//   ✅ FIX: hitLine sekarang handle TP1/TP2/SL masing-masing
-//   ✅ FIX: hitLine handle TP1/TP2/SL (TP3 tidak pernah diimplementasi — dihapus dari changelog)
+//   ✅ FIX: hitLine sekarang handle TP1/TP2/TP3/SL masing-masing
+//   ✅ NEW: TP3 reminder "Semua posisi tertutup" di pesan
 // ============================================================
 
 const express = require("express");
@@ -27,6 +29,12 @@ app.use(express.json());
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8771269046:AAEyeOQob2mn7r7WfIg8lsqzt1vQ-iC_5G8";
 const CHAT_ID        = process.env.CHAT_ID        || "-1003823245991";
 const SECRET_KEY     = process.env.WEBHOOK_SECRET || "ogifedyansyah_signal_2024";
+
+// ─────────────────────────────────────────
+// LONDON STATUS COOLDOWN (anti spam multi-chart)
+// ─────────────────────────────────────────
+let lastLondonAlert      = 0;
+const LONDON_COOLDOWN_MS = 5 * 60 * 1000; // 5 menit
 
 // ─────────────────────────────────────────
 // KIRIM PESAN KE TELEGRAM
@@ -237,6 +245,12 @@ app.post("/webhook", async (req, res) => {
 
         // ── London Open Status ──
         if (data.type === "LONDON_STATUS") {
+            const now = Date.now();
+            if (now - lastLondonAlert < LONDON_COOLDOWN_MS) {
+                console.log("London status cooldown — skip duplikat");
+                return res.json({ ok: true, message: "London status cooldown (skip)" });
+            }
+            lastLondonAlert = now;
             await sendTelegram(formatLondonStatus(data));
             return res.json({ ok: true, message: "London status sent" });
         }
@@ -281,9 +295,9 @@ app.post("/webhook", async (req, res) => {
 app.get("/", (_req, res) => {
     res.json({
         status   : "BMD Signal Bot is running",
-        version  : "3.6",
+        version  : "3.7",
         pine     : "v8.2 compatible",
-        features : ["EARLY (skor≥5)", "CONFIRM (skor≥5)", "HPM", "OB_TIER", "LONDON_STATUS", "TP1_HIT", "TP2_HIT", "SL_HIT"],
+        features : ["EARLY (skor≥5)", "CONFIRM (skor≥5)", "HPM", "OB_TIER", "LONDON_STATUS (cooldown 5m)", "TP1_HIT", "TP2_HIT", "SL_HIT"],
         time     : new Date().toISOString()
     });
 });
@@ -294,18 +308,17 @@ app.get("/", (_req, res) => {
 app.get("/test", async (_req, res) => {
     const time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     await sendTelegram(
-        `🧪 <b>TEST BMD SIGNAL BOT v3.6</b>\n` +
+        `🧪 <b>TEST BMD SIGNAL BOT v3.7</b>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `Pine Script : v8.2 Edition\n` +
         `Score       : Min 5/10 | EARLY + CONFIRM\n` +
         `OB Tier     : 🔥FRESH / ⚡MITIGATED / 💀WEAK\n` +
         `HPM Mode    : 🔥 High Probability Toggle\n` +
         `TP Split    : TP1(50%) + TP2(50%)\n` +
-        `Multi-trade : ✅ Max 3 concurrent\n` +
-        `Zone Invalid: ❌ Dinonaktifkan (anti spam)\n` +
+        `London      : Cooldown 5 menit (anti spam)\n` +
         `Waktu       : ${time} WIB`
     );
-    res.json({ ok: true, message: "Test sent!", version: "3.6" });
+    res.json({ ok: true, message: "Test sent!", version: "3.7" });
 });
 
 app.get("/test-signal", async (_req, res) => {
@@ -350,7 +363,7 @@ app.get("/test-london", async (_req, res) => {
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`BMD Signal Bot v3.6 running on port ${PORT}`);
+    console.log(`BMD Signal Bot v3.7 running on port ${PORT}`);
     console.log(`Pine: v8.2 compatible`);
     console.log(`Secret key: ${SECRET_KEY.substring(0, 6)}...`);
 });
