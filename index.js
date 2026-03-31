@@ -20,13 +20,30 @@ async function sendTelegram(chatId, text) {
   });
 }
 
+// ── HELPER: format timeframe ─────────────────────────────
+function formatTF(interval) {
+  if (!interval) return "—";
+  const map = {
+    "1":   "1 Menit",   "2":   "2 Menit",   "3":   "3 Menit",
+    "5":   "5 Menit",   "10":  "10 Menit",  "15":  "15 Menit",
+    "30":  "30 Menit",  "45":  "45 Menit",
+    "60":  "1 Jam",     "120": "2 Jam",     "180": "3 Jam",
+    "240": "4 Jam",     "360": "6 Jam",     "480": "8 Jam",
+    "720": "12 Jam",
+    "1D":  "1 Hari",    "D":   "1 Hari",
+    "1W":  "1 Minggu",  "W":   "1 Minggu",
+    "1M":  "1 Bulan",   "M":   "1 Bulan",
+  };
+  return map[String(interval)] || interval + " Menit";
+}
+
 // ── HELPER: format pesan per tipe ───────────────────────
 function buildMessage(body) {
   const { type, ticker, interval, price } = body;
 
-  const p  = price    ? `\`${Number(price).toFixed(2)}\`` : "—";
-  const tf = interval || "—";
-  const tk = ticker   || "—";
+  const p  = price  ? `\`${Number(price).toFixed(2)}\`` : "—";
+  const tf = formatTF(interval);
+  const tk = ticker || "—";
 
   switch (type) {
     case "BUY":
@@ -40,7 +57,6 @@ function buildMessage(body) {
         `━━━━━━━━━━━━━━━━━━\n` +
         `⚡ _Siap masuk BUY!_`
       );
-
     case "SELL":
       return (
         `🔴 *REAPER SELL SIGNAL*\n` +
@@ -52,7 +68,6 @@ function buildMessage(body) {
         `━━━━━━━━━━━━━━━━━━\n` +
         `⚡ _Siap masuk SELL!_`
       );
-
     case "CROSS_UP":
       return (
         `✕ *EMA CROSS UP*\n` +
@@ -63,7 +78,6 @@ function buildMessage(body) {
         `🔔 EMA9 silang ke atas EMA21\n` +
         `👀 _Siap-siap BUY!_`
       );
-
     case "CROSS_DOWN":
       return (
         `✕ *EMA CROSS DOWN*\n` +
@@ -74,7 +88,6 @@ function buildMessage(body) {
         `🔔 EMA9 silang ke bawah EMA21\n` +
         `👀 _Siap-siap SELL!_`
       );
-
     case "TP_HIT":
       return (
         `✅ *TP HIT — PROFIT!*\n` +
@@ -84,7 +97,6 @@ function buildMessage(body) {
         `💰 Price : ${p}\n` +
         `🎯 _Target tercapai!_`
       );
-
     case "SL_HIT":
       return (
         `❌ *SL HIT — STOP LOSS*\n` +
@@ -94,16 +106,14 @@ function buildMessage(body) {
         `💰 Price : ${p}\n` +
         `🛑 _Loss terkonfirmasi. Next setup!_`
       );
-
     default:
-      // fallback: kalau ada custom message dari TradingView
       return body.message || `📡 Signal diterima: ${type || "UNKNOWN"}`;
   }
 }
 
 // ── ROUTE: health check ──────────────────────────────────
 app.get("/", (req, res) => {
-  res.json({ status: "ok", bot: "BMD Signal Bot", version: "3.0" });
+  res.json({ status: "ok", bot: "BMD Signal Bot", version: "3.1" });
 });
 
 // ── ROUTE: webhook dari TradingView ─────────────────────
@@ -111,19 +121,14 @@ app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
 
-    // 1. Validasi secret
     if (!body.secret || body.secret !== WEBHOOK_SECRET) {
       console.warn("⛔ Secret tidak valid:", body.secret);
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    // 2. Log masuk
     console.log("📡 Webhook masuk:", JSON.stringify(body));
 
-    // 3. Tentukan target chat
     const targetChat = body.chat_id || CHAT_ID;
-
-    // 4. Build & kirim pesan
     const text = buildMessage(body);
     await sendTelegram(targetChat, text);
 
@@ -136,12 +141,13 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// ── ROUTE: test manual (GET) ─────────────────────────────
+// ── ROUTE: test manual ───────────────────────────────────
 app.get("/test", async (req, res) => {
   try {
     await sendTelegram(CHAT_ID,
       `🤖 *BMD Signal Bot aktif!*\n` +
-      `✅ Webhook siap menerima sinyal dari TradingView.`
+      `✅ Webhook siap menerima sinyal dari TradingView.\n` +
+      `📦 Versi: 3.1`
     );
     res.json({ ok: true, message: "Test message sent" });
   } catch (err) {
@@ -151,5 +157,5 @@ app.get("/test", async (req, res) => {
 
 // ── START ────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`🚀 BMD Signal Bot running on port ${PORT}`);
+  console.log(`🚀 BMD Signal Bot v3.1 running on port ${PORT}`);
 });
