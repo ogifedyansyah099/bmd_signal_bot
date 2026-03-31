@@ -174,7 +174,22 @@ app.get("/mt5/signal", (req, res) => {
   if (secret !== MT5_SECRET)
     return res.status(403).json({ error: "Unauthorized" });
 
-  const signal = pendingSignals.find(s => !s.executed);
+  // Filter by ticker — EA kirim symbol-nya supaya ambil sinyal yang sesuai
+  const sym = (req.query.symbol || req.query.ticker || "").toUpperCase().replace(/[^A-Z0-9]/g,"");
+
+  let signal;
+  if (sym) {
+    // Cari sinyal yang match dengan symbol EA (exact atau starts with)
+    signal = pendingSignals.find(s => !s.executed &&
+      (s.ticker.toUpperCase() === sym ||
+       s.ticker.toUpperCase().startsWith(sym) ||
+       sym.startsWith(s.ticker.toUpperCase()))
+    );
+  } else {
+    // Fallback: ambil sinyal pertama (backward compatible)
+    signal = pendingSignals.find(s => !s.executed);
+  }
+
   if (!signal)
     return res.json({ signal: null, queue: 0 });
 
