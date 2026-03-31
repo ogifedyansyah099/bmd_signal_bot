@@ -1,10 +1,11 @@
 {
   "name": "bmd-signal-bot",
   "version": "3.0.0",
-  "main": "bmd_bot.js",
+  "description": "BMD Signal Bot — TradingView → Telegram",
+  "main": "index.js",
   "scripts": {
-    "start": "node bmd_bot.js",
-    "dev": "nodemon bmd_bot.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
