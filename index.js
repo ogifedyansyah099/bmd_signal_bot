@@ -212,15 +212,15 @@ app.get("/mt5/signal", (req, res) => {
 
   const sig = signalQueue[sym] || null;
 
-  // Kalau ada signal, cek expiry 60 detik (jaga-jaga kalau EA telat)
-  if (sig) {
-    const age = (Date.now() - sig.receivedAt) / 1000;
-    if (age > 60) {
-      console.log(`⏰ Signal ${sym} expired di server (${age.toFixed(0)}s). Dihapus.`);
-      delete signalQueue[sym];
-      return res.json({ signal: null });
-    }
+ // Kalau ada signal, cek expiry (DIPERPANJANG)
+if (sig) {
+  const age = (Date.now() - sig.receivedAt) / 1000;
+  if (age > 300) { // ⬅️ dari 60 jadi 300 detik
+    console.log(`⏰ Signal ${sym} expired di server (${age.toFixed(0)}s). Dihapus.`);
+    delete signalQueue[sym];
+    return res.json({ signal: null });
   }
+}
 
   console.log(`🔍 MT5 poll [${sym}]: ${sig ? "ADA signal ID=" + sig.id : "kosong"}`);
   res.json({ signal: sig });
